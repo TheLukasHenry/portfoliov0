@@ -1,17 +1,36 @@
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
-import { GithubIcon, LinkedinIcon, XIcon } from 'lucide-react'
+import { GithubIcon, LinkedinIcon, TwitterIcon } from 'lucide-react'
+import { motion } from 'framer-motion'
 
 export default function Contact() {
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: { opacity: 1, transition: { staggerChildren: 0.1 } },
+  }
+
+  const itemVariants = {
+    hidden: { x: -20, opacity: 0 },
+    visible: { x: 0, opacity: 1 },
+  }
+
   return (
-    <section className="w-full py-12 md:py-24 lg:py-32">
+    <motion.section
+      className="w-full py-12 md:py-24 lg:py-32"
+      initial="hidden"
+      animate="visible"
+      variants={containerVariants}
+    >
       <div className="container px-4 md:px-6">
-        <h2 className="text-3xl font-bold tracking-tighter sm:text-5xl mb-8 text-center">
+        <motion.h2
+          className="text-3xl font-bold tracking-tighter sm:text-5xl mb-8 text-center"
+          variants={itemVariants}
+        >
           Get in Touch
-        </h2>
+        </motion.h2>
         <div className="grid gap-10 lg:grid-cols-2">
-          <div>
+          <motion.div variants={itemVariants}>
             <form className="space-y-4">
               <div className="space-y-2">
                 <label htmlFor="name">Name</label>
@@ -29,8 +48,8 @@ export default function Contact() {
                 Send Message
               </Button>
             </form>
-          </div>
-          <div className="space-y-4">
+          </motion.div>
+          <motion.div className="space-y-4" variants={itemVariants}>
             <h3 className="text-2xl font-bold">Contact Information</h3>
             <p className="text-muted-foreground">
               Feel free to reach out to me through the form or via the following
@@ -42,22 +61,24 @@ export default function Contact() {
               <p>Location: San Francisco, CA</p>
             </div>
             <div className="flex space-x-4">
-              <a href="#" className="text-muted-foreground hover:text-primary">
-                <GithubIcon className="h-6 w-6" />
-                <span className="sr-only">GitHub</span>
-              </a>
-              <a href="#" className="text-muted-foreground hover:text-primary">
-                <LinkedinIcon className="h-6 w-6" />
-                <span className="sr-only">LinkedIn</span>
-              </a>
-              <a href="#" className="text-muted-foreground hover:text-primary">
-                <XIcon className="h-6 w-6" />
-                <span className="sr-only">Twitter</span>
-              </a>
+              {[GithubIcon, LinkedinIcon, TwitterIcon].map((Icon, index) => (
+                <motion.a
+                  key={index}
+                  href="#"
+                  className="text-muted-foreground hover:text-primary"
+                  whileHover={{ scale: 1.2, rotate: 5 }}
+                  whileTap={{ scale: 0.9 }}
+                >
+                  <Icon className="h-6 w-6" />
+                  <span className="sr-only">
+                    {Icon.name.replace('Icon', '')}
+                  </span>
+                </motion.a>
+              ))}
             </div>
-          </div>
+          </motion.div>
         </div>
       </div>
-    </section>
+    </motion.section>
   )
 }

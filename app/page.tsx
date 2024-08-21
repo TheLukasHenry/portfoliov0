@@ -1,43 +1,69 @@
+'use client'
+import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { CardContent, Card } from '@/components/ui/card'
-import Link from 'next/link'
-import { CloudIcon, CodeIcon, DatabaseIcon, LayoutIcon } from 'lucide-react'
+import { CodeIcon, DatabaseIcon, LayoutIcon, CloudIcon } from 'lucide-react'
+import { motion } from 'framer-motion'
 
 export default function Component() {
+  const headerVariants = {
+    hidden: { opacity: 0, y: -20 },
+    visible: { opacity: 1, y: 0 },
+  }
+
+  const heroVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: { opacity: 1, y: 0 },
+  }
+
   return (
     <div className="flex flex-col min-h-[100dvh]">
-      <header className="px-4 lg:px-6 h-14 flex items-center">
-        <Link className="flex items-center justify-center" href="#">
-          <CodeIcon className="h-6 w-6" />
-          <span className="sr-only">Jane Doe</span>
-        </Link>
+      <motion.header
+        className="px-4 lg:px-6 h-14 flex items-center"
+        initial="hidden"
+        animate="visible"
+        variants={headerVariants}
+        transition={{ duration: 0.5, staggerChildren: 0.1 }}
+      >
+        <motion.div variants={headerVariants}>
+          <Link className="flex items-center justify-center" href="#">
+            <CodeIcon className="h-6 w-6" />
+            <span className="sr-only">Jane Doe</span>
+          </Link>
+        </motion.div>
         <nav className="ml-auto flex gap-4 sm:gap-6">
-          <Link
-            className="text-sm font-medium hover:underline underline-offset-4"
-            href="about"
-          >
-            About
-          </Link>
-          <Link
-            className="text-sm font-medium hover:underline underline-offset-4"
-            href="projects"
-          >
-            Projects
-          </Link>
-          <Link
-            className="text-sm font-medium hover:underline underline-offset-4"
-            href="contact"
-          >
-            Contact
-          </Link>
+          {['About', 'Projects', 'Contact'].map((item, index) => (
+            <motion.div key={item} variants={headerVariants}>
+              <Link
+                className="text-sm font-medium hover:underline underline-offset-4"
+                href="#"
+              >
+                {item}
+              </Link>
+            </motion.div>
+          ))}
         </nav>
-      </header>
+      </motion.header>
       <main className="flex-1">
-        <section className="w-full py-12 md:py-24 lg:py-32 xl:py-48">
+        <motion.section
+          className="w-full py-12 md:py-24 lg:py-32 xl:py-48"
+          initial="hidden"
+          animate="visible"
+          variants={heroVariants}
+          transition={{ duration: 0.8, delay: 0.2 }}
+        >
           <div className="container px-4 md:px-6">
             <div className="flex flex-col items-center space-y-4 text-center">
-              <div className="space-y-2">
+              <motion.div
+                className="space-y-2"
+                animate={{ y: [0, -10, 0] }}
+                transition={{
+                  repeat: Infinity,
+                  duration: 5,
+                  ease: 'easeInOut',
+                }}
+              >
                 <h1 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl lg:text-6xl/none">
                   Jane Doe
                 </h1>
@@ -45,7 +71,7 @@ export default function Component() {
                   Software Engineer passionate about creating elegant solutions
                   to complex problems.
                 </p>
-              </div>
+              </motion.div>
               <div className="space-x-4">
                 <Link
                   className="inline-flex h-9 items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50"
@@ -62,7 +88,7 @@ export default function Component() {
               </div>
             </div>
           </div>
-        </section>
+        </motion.section>
         <section className="w-full py-12 md:py-24 lg:py-32 bg-muted">
           <div className="container px-4 md:px-6">
             <div className="flex flex-col items-center justify-center space-y-4 text-center">
