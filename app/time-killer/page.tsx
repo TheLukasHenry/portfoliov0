@@ -1,10 +1,36 @@
+'use client'
+import { useState } from 'react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { CodeIcon, GamepadIcon } from 'lucide-react'
 import SnakeGame from '@/components/SnakeGame'
+import MarioGame from '@/components/MarioGame'
+
+type GameType = 'snake' | 'mario' | null
 
 export default function TimeKillerPage() {
+  const [currentGame, setCurrentGame] = useState<GameType>(null)
+
+  const renderGame = () => {
+    switch (currentGame) {
+      case 'snake':
+        return <SnakeGame />
+      case 'mario':
+        return <MarioGame />
+      default:
+        return null
+    }
+  }
+
+  const handlePlayClick = (game: GameType) => {
+    setCurrentGame(game)
+  }
+
+  const handleBackToGames = () => {
+    setCurrentGame(null)
+  }
+
   return (
     <div className="flex flex-col min-h-[100dvh]">
       <header className="px-4 lg:px-6 h-14 flex items-center border-b">
@@ -45,52 +71,74 @@ export default function TimeKillerPage() {
           <h1 className="text-3xl font-bold tracking-tighter sm:text-5xl mb-8 text-center">
             Time Killer Games
           </h1>
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            <Card className="flex flex-col">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <GamepadIcon className="h-6 w-6" />
-                  Snake
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="flex-grow">
-                <SnakeGame />
-              </CardContent>
-            </Card>
-            {/* Placeholder for other games */}
-            <Card className="flex flex-col">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <GamepadIcon className="h-6 w-6" />
-                  Mario (Coming Soon)
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="flex-grow">
-                <p className="text-muted-foreground mb-4">
-                  Jump and run in this Mario-inspired platformer.
-                </p>
-                <Button className="w-full" disabled>
-                  Play Mario
-                </Button>
-              </CardContent>
-            </Card>
-            <Card className="flex flex-col">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <GamepadIcon className="h-6 w-6" />
-                  Pacman (Coming Soon)
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="flex-grow">
-                <p className="text-muted-foreground mb-4">
-                  Navigate through the maze and eat all the dots.
-                </p>
-                <Button className="w-full" disabled>
-                  Play Pacman
-                </Button>
-              </CardContent>
-            </Card>
-          </div>
+
+          {currentGame ? (
+            <div className="flex flex-col items-center">
+              <div className="mb-4">
+                <Button onClick={handleBackToGames}>Back to Games</Button>
+              </div>
+              {renderGame()}
+            </div>
+          ) : (
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+              <Card className="flex flex-col">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <GamepadIcon className="h-6 w-6" />
+                    Snake
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="flex-grow">
+                  <p className="text-muted-foreground mb-4">
+                    Classic snake game with a twist! Eat different types of food
+                    to grow and gain special effects.
+                  </p>
+                  <Button
+                    className="w-full"
+                    onClick={() => handlePlayClick('snake')}
+                  >
+                    Play Snake
+                  </Button>
+                </CardContent>
+              </Card>
+              <Card className="flex flex-col">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <GamepadIcon className="h-6 w-6" />
+                    Mario
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="flex-grow">
+                  <p className="text-muted-foreground mb-4">
+                    A simple Mario-style platformer. Jump on platforms and reach
+                    the goal!
+                  </p>
+                  <Button
+                    className="w-full"
+                    onClick={() => handlePlayClick('mario')}
+                  >
+                    Play Mario
+                  </Button>
+                </CardContent>
+              </Card>
+              <Card className="flex flex-col">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <GamepadIcon className="h-6 w-6" />
+                    Pacman (Coming Soon)
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="flex-grow">
+                  <p className="text-muted-foreground mb-4">
+                    Navigate through the maze and eat all the dots. Coming soon!
+                  </p>
+                  <Button className="w-full" disabled>
+                    Play Pacman
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
+          )}
         </div>
       </main>
 
