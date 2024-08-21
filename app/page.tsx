@@ -30,6 +30,12 @@ export default function LandingPage() {
           >
             Contact
           </Link>
+          <Link
+            className="text-sm font-medium hover:underline underline-offset-4"
+            href="/time-killer"
+          >
+            Time Killer
+          </Link>
         </nav>
       </header>
 
