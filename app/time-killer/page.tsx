@@ -1,4 +1,5 @@
 'use client'
+
 import { useState } from 'react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
@@ -6,8 +7,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { CodeIcon, GamepadIcon } from 'lucide-react'
 import SnakeGame from '@/components/SnakeGame'
 import MarioGame from '@/components/MarioGame'
+import PacmanGame from '@/components/PacmanGame'
 
-type GameType = 'snake' | 'mario' | null
+type GameType = 'snake' | 'mario' | 'pacman' | null
 
 export default function TimeKillerPage() {
   const [currentGame, setCurrentGame] = useState<GameType>(null)
@@ -18,6 +20,8 @@ export default function TimeKillerPage() {
         return <SnakeGame />
       case 'mario':
         return <MarioGame />
+      case 'pacman':
+        return <PacmanGame />
       default:
         return null
     }
@@ -90,8 +94,7 @@ export default function TimeKillerPage() {
                 </CardHeader>
                 <CardContent className="flex-grow">
                   <p className="text-muted-foreground mb-4">
-                    Classic snake game with a twist! Eat different types of food
-                    to grow and gain special effects.
+                    Classic snake game. Eat food to grow longer!
                   </p>
                   <Button
                     className="w-full"
@@ -110,8 +113,7 @@ export default function TimeKillerPage() {
                 </CardHeader>
                 <CardContent className="flex-grow">
                   <p className="text-muted-foreground mb-4">
-                    A simple Mario-style platformer. Jump on platforms and reach
-                    the goal!
+                    A simple Mario-style platformer. Jump and reach the goal!
                   </p>
                   <Button
                     className="w-full"
@@ -125,14 +127,18 @@ export default function TimeKillerPage() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <GamepadIcon className="h-6 w-6" />
-                    Pacman (Coming Soon)
+                    Pacman
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="flex-grow">
                   <p className="text-muted-foreground mb-4">
-                    Navigate through the maze and eat all the dots. Coming soon!
+                    Navigate through the maze and eat all the dots. Avoid the
+                    ghost!
                   </p>
-                  <Button className="w-full" disabled>
+                  <Button
+                    className="w-full"
+                    onClick={() => handlePlayClick('pacman')}
+                  >
                     Play Pacman
                   </Button>
                 </CardContent>
