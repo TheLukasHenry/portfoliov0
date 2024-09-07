@@ -2,6 +2,7 @@
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { CodeIcon } from 'lucide-react'
+import SpaceShip from '@/components/SpaceShip'
 
 export default function LandingPage() {
   return (
@@ -39,29 +40,7 @@ export default function LandingPage() {
         </nav>
       </header>
 
-      <main className="flex-1 flex items-center justify-center">
-        <div className="text-center space-y-6">
-          <h1 className="text-4xl font-bold tracking-tighter sm:text-5xl md:text-6xl">
-            Jane Doe
-          </h1>
-          <p className="mx-auto max-w-[600px] text-muted-foreground md:text-xl">
-            Software Engineer passionate about creating elegant solutions to
-            complex problems.
-          </p>
-          <div className="space-x-4">
-            <Button asChild>
-              <Link href="/contact">Contact Me</Link>
-            </Button>
-            <Button variant="outline" asChild>
-              <Link href="/projects">View Projects</Link>
-            </Button>
-          </div>
-        </div>
-      </main>
-
-      <footer className="border-t py-4 text-center text-sm text-muted-foreground">
-        © 2024 Jane Doe. All rights reserved.
-      </footer>
+      <SpaceShip />
     </div>
   )
 }

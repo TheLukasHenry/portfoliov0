@@ -3,232 +3,321 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react'
 import { Button } from '@/components/ui/button'
 
-const CANVAS_WIDTH = 800
+const CANVAS_WIDTH = 400
 const CANVAS_HEIGHT = 400
-const GRAVITY = 0.5
-const JUMP_FORCE = -20
-const MOVE_SPEED = 5
+const CELL_SIZE = 20
+const PACMAN_SIZE = 16
+const GHOST_SIZE = 16
+const DOT_SIZE = 4
+const MOVE_INTERVAL = 150 // Time in ms between moves
+const CHASE_DISTANCE = 5 // Number of cells the ghost can see Pacman
 
-interface GameObject {
+type Direction = 'up' | 'down' | 'left' | 'right' | null
+
+interface Position {
   x: number
   y: number
-  width: number
-  height: number
 }
 
-const MarioGame: React.FC = () => {
+const PacmanGame: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null)
-  const requestRef = useRef<number>()
   const [gameStarted, setGameStarted] = useState(false)
-  const [gameWon, setGameWon] = useState(false)
+  const [gameOver, setGameOver] = useState(false)
+  const [score, setScore] = useState(0)
+  const [pacman, setPacman] = useState<Position>({ x: 1, y: 1 })
+  const [ghost, setGhost] = useState<Position>({ x: 18, y: 18 })
+  const [dots, setDots] = useState<Position[]>([])
+  const [currentDirection, setCurrentDirection] = useState<Direction>(null)
+  const moveIntervalRef = useRef<number | null>(null)
 
-  const [player, setPlayer] = useState<GameObject>({
-    x: 50,
-    y: CANVAS_HEIGHT - 80,
-    width: 40,
-    height: 60,
-  })
-
-  const [velocity, setVelocity] = useState({ x: 0, y: 0 })
-  const [isJumping, setIsJumping] = useState(false)
-  const [moveDirection, setMoveDirection] = useState({
-    left: false,
-    right: false,
-  })
-
-  const platforms: GameObject[] = [
-    { x: 200, y: 300, width: 100, height: 20 },
-    { x: 400, y: 200, width: 100, height: 20 },
-    { x: 600, y: 300, width: 100, height: 20 },
+  const maze = [
+    [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+    [1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+    [1, 0, 1, 1, 0, 1, 1, 1, 0, 1, 1, 0, 1, 1, 1, 0, 1, 1, 0, 1],
+    [1, 0, 1, 1, 0, 1, 1, 1, 0, 1, 1, 0, 1, 1, 1, 0, 1, 1, 0, 1],
+    [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+    [1, 0, 1, 1, 0, 1, 0, 1, 1, 1, 1, 1, 1, 0, 1, 0, 1, 1, 0, 1],
+    [1, 0, 0, 0, 0, 1, 0, 0, 0, 1, 1, 0, 0, 0, 1, 0, 0, 0, 0, 1],
+    [1, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 1],
+    [1, 1, 1, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 1, 1, 1],
+    [1, 1, 1, 1, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0, 1, 0, 1, 1, 1, 1],
+    [0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0],
+    [1, 1, 1, 1, 0, 1, 0, 1, 1, 1, 1, 1, 1, 0, 1, 0, 1, 1, 1, 1],
+    [1, 1, 1, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 1, 1, 1],
+    [1, 1, 1, 1, 0, 1, 0, 1, 1, 1, 1, 1, 1, 0, 1, 0, 1, 1, 1, 1],
+    [1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+    [1, 0, 1, 1, 0, 1, 1, 1, 0, 1, 1, 0, 1, 1, 1, 0, 1, 1, 0, 1],
+    [1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1],
+    [1, 1, 0, 1, 0, 1, 0, 1, 1, 1, 1, 1, 1, 0, 1, 0, 1, 0, 1, 1],
+    [1, 0, 0, 0, 0, 1, 0, 0, 0, 1, 1, 0, 0, 0, 1, 0, 0, 0, 0, 1],
+    [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
   ]
 
-  const goal: GameObject = {
-    x: 750,
-    y: CANVAS_HEIGHT - 80,
-    width: 40,
-    height: 60,
+  const initializeDots = useCallback(() => {
+    const newDots: Position[] = []
+    for (let y = 0; y < maze.length; y++) {
+      for (let x = 0; x < maze[y].length; x++) {
+        if (maze[y][x] === 0) {
+          newDots.push({ x, y })
+        }
+      }
+    }
+    setDots(newDots)
+  }, [maze])
+
+  const getDistance = (pos1: Position, pos2: Position): number => {
+    return Math.abs(pos1.x - pos2.x) + Math.abs(pos1.y - pos2.y)
   }
 
-  const checkCollision = useCallback((obj1: GameObject, obj2: GameObject) => {
-    return (
-      obj1.x < obj2.x + obj2.width &&
-      obj1.x + obj1.width > obj2.x &&
-      obj1.y < obj2.y + obj2.height &&
-      obj1.y + obj1.height > obj2.y
-    )
-  }, [])
+  const moveGhost = useCallback(
+    (pacmanPos: Position, ghostPos: Position): Position => {
+      const distance = getDistance(ghostPos, pacmanPos)
 
-  const updatePlayerPosition = useCallback(() => {
-    setPlayer((prev) => {
-      let newX = prev.x + velocity.x
-      let newY = prev.y + velocity.y
+      if (distance <= CHASE_DISTANCE) {
+        // Chase Pacman
+        const directions: Direction[] = ['up', 'down', 'left', 'right']
+        let bestDirection: Direction | null = null
+        let bestDistance = Infinity
 
-      // Check platform collisions
-      let onGround = false
-      for (const platform of platforms) {
-        if (checkCollision({ ...prev, x: newX, y: newY }, platform)) {
-          // Collision from above
-          if (
-            prev.y + prev.height <= platform.y &&
-            newY + prev.height > platform.y
-          ) {
-            newY = platform.y - prev.height
-            onGround = true
+        for (const dir of directions) {
+          const newPos = getNewPosition(ghostPos, dir)
+          if (maze[newPos.y][newPos.x] !== 1) {
+            const newDistance = getDistance(newPos, pacmanPos)
+            if (newDistance < bestDistance) {
+              bestDistance = newDistance
+              bestDirection = dir
+            }
           }
-          // Collision from below
-          else if (
-            prev.y >= platform.y + platform.height &&
-            newY < platform.y + platform.height
-          ) {
-            newY = platform.y + platform.height
-          }
-          // Collision from the side
-          else {
-            newX =
-              velocity.x > 0
-                ? platform.x - prev.width
-                : platform.x + platform.width
+        }
+
+        if (bestDirection) {
+          return getNewPosition(ghostPos, bestDirection)
+        }
+      }
+
+      // Random movement if not chasing
+      const directions: Direction[] = ['up', 'down', 'left', 'right']
+      const validMoves = directions.filter((dir) => {
+        const newPos = getNewPosition(ghostPos, dir)
+        return maze[newPos.y][newPos.x] !== 1
+      })
+
+      if (validMoves.length > 0) {
+        const randomDir =
+          validMoves[Math.floor(Math.random() * validMoves.length)]
+        return getNewPosition(ghostPos, randomDir)
+      }
+
+      return ghostPos
+    },
+    [maze]
+  )
+
+  const getNewPosition = (pos: Position, dir: Direction): Position => {
+    if (!dir) return pos
+    switch (dir) {
+      case 'up':
+        return { x: pos.x, y: Math.max(0, pos.y - 1) }
+      case 'down':
+        return { x: pos.x, y: Math.min(maze.length - 1, pos.y + 1) }
+      case 'left':
+        return { x: Math.max(0, pos.x - 1), y: pos.y }
+      case 'right':
+        return { x: Math.min(maze[0].length - 1, pos.x + 1), y: pos.y }
+    }
+  }
+
+  const movePacman = useCallback(
+    (direction: Direction, pacmanPos: Position): Position => {
+      if (!direction) return pacmanPos
+      const newPos = getNewPosition(pacmanPos, direction)
+      if (maze[newPos.y][newPos.x] !== 1) {
+        const dotIndex = dots.findIndex(
+          (dot) => dot.x === newPos.x && dot.y === newPos.y
+        )
+        if (dotIndex !== -1) {
+          setDots(dots.filter((_, index) => index !== dotIndex))
+          setScore((prevScore) => prevScore + 10)
+        }
+        return newPos
+      }
+      return pacmanPos
+    },
+    [maze, dots]
+  )
+
+  const checkCollision = useCallback(
+    (pacmanPos: Position, ghostPos: Position) => {
+      return pacmanPos.x === ghostPos.x && pacmanPos.y === ghostPos.y
+    },
+    []
+  )
+
+  const drawGame = useCallback(
+    (pacmanPos: Position, ghostPos: Position) => {
+      const canvas = canvasRef.current
+      if (!canvas) return
+      const ctx = canvas.getContext('2d')
+      if (!ctx) return
+
+      // Clear canvas
+      ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT)
+
+      // Draw maze
+      for (let y = 0; y < maze.length; y++) {
+        for (let x = 0; x < maze[y].length; x++) {
+          if (maze[y][x] === 1) {
+            ctx.fillStyle = 'blue'
+            ctx.fillRect(x * CELL_SIZE, y * CELL_SIZE, CELL_SIZE, CELL_SIZE)
           }
         }
       }
 
-      // Check ground collision
-      if (newY + prev.height > CANVAS_HEIGHT - 20) {
-        newY = CANVAS_HEIGHT - prev.height - 20
-        onGround = true
-      }
+      // Draw dots
+      ctx.fillStyle = 'white'
+      dots.forEach((dot) => {
+        ctx.beginPath()
+        ctx.arc(
+          dot.x * CELL_SIZE + CELL_SIZE / 2,
+          dot.y * CELL_SIZE + CELL_SIZE / 2,
+          DOT_SIZE,
+          0,
+          Math.PI * 2
+        )
+        ctx.fill()
+      })
 
-      if (onGround) {
-        setIsJumping(false)
-        setVelocity((v) => ({ ...v, y: 0 }))
-      } else {
-        setVelocity((v) => ({ ...v, y: v.y + GRAVITY }))
-      }
+      // Draw Pacman
+      ctx.fillStyle = 'yellow'
+      ctx.beginPath()
+      ctx.arc(
+        pacmanPos.x * CELL_SIZE + CELL_SIZE / 2,
+        pacmanPos.y * CELL_SIZE + CELL_SIZE / 2,
+        PACMAN_SIZE / 2,
+        0,
+        Math.PI * 2
+      )
+      ctx.fill()
 
-      // Boundary checks
-      newX = Math.max(0, Math.min(newX, CANVAS_WIDTH - prev.width))
-      newY = Math.max(0, Math.min(newY, CANVAS_HEIGHT - prev.height - 20))
-
-      return { ...prev, x: newX, y: newY }
-    })
-  }, [velocity, platforms, checkCollision])
-
-  const jump = useCallback(() => {
-    if (!isJumping) {
-      setVelocity((prev) => ({ ...prev, y: JUMP_FORCE }))
-      setIsJumping(true)
-    }
-  }, [isJumping])
+      // Draw Ghost
+      ctx.fillStyle = 'red'
+      ctx.beginPath()
+      ctx.arc(
+        ghostPos.x * CELL_SIZE + CELL_SIZE / 2,
+        ghostPos.y * CELL_SIZE + CELL_SIZE / 2,
+        GHOST_SIZE / 2,
+        0,
+        Math.PI * 2
+      )
+      ctx.fill()
+    },
+    [maze, dots]
+  )
 
   const gameLoop = useCallback(() => {
-    if (!gameStarted || gameWon) return
+    if (!gameStarted || gameOver) return
 
-    const canvas = canvasRef.current
-    if (!canvas) return
+    const newPacmanPos = movePacman(currentDirection, pacman)
+    const newGhostPos = moveGhost(newPacmanPos, ghost)
 
-    const context = canvas.getContext('2d')
-    if (!context) return
-
-    // Clear canvas
-    context.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT)
-
-    // Draw background (sky)
-    context.fillStyle = '#87CEEB'
-    context.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT)
-
-    // Update player position
-    updatePlayerPosition()
-
-    // Draw ground
-    context.fillStyle = '#5a3e2a'
-    context.fillRect(0, CANVAS_HEIGHT - 20, CANVAS_WIDTH, 20)
-
-    // Draw platforms
-    context.fillStyle = '#8b4513'
-    platforms.forEach((platform) => {
-      context.fillRect(platform.x, platform.y, platform.width, platform.height)
-    })
-
-    // Draw player
-    context.fillStyle = 'red'
-    context.fillRect(player.x, player.y, player.width, player.height)
-
-    // Draw goal
-    context.fillStyle = 'gold'
-    context.fillRect(goal.x, goal.y, goal.width, goal.height)
-
-    // Check win condition
-    if (checkCollision(player, goal)) {
-      setGameWon(true)
+    if (checkCollision(newPacmanPos, newGhostPos)) {
+      drawGame(newPacmanPos, newGhostPos)
+      setGameOver(true)
+      setGameStarted(false)
+      if (moveIntervalRef.current) {
+        clearInterval(moveIntervalRef.current)
+      }
+      return
     }
 
-    requestRef.current = requestAnimationFrame(gameLoop)
+    setPacman(newPacmanPos)
+    setGhost(newGhostPos)
+
+    // Check win condition
+    if (dots.length === 0) {
+      setGameOver(true)
+      setGameStarted(false)
+      if (moveIntervalRef.current) {
+        clearInterval(moveIntervalRef.current)
+      }
+      return
+    }
+
+    drawGame(newPacmanPos, newGhostPos)
   }, [
     gameStarted,
-    gameWon,
-    player,
-    updatePlayerPosition,
-    platforms,
+    gameOver,
+    currentDirection,
+    movePacman,
+    moveGhost,
     checkCollision,
+    dots,
+    drawGame,
+    pacman,
+    ghost,
   ])
 
   useEffect(() => {
-    requestRef.current = requestAnimationFrame(gameLoop)
-    return () => {
-      if (requestRef.current) {
-        cancelAnimationFrame(requestRef.current)
-      }
-    }
-  }, [gameLoop])
-
-  useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      e.preventDefault()
-      if (e.code === 'ArrowLeft') {
-        setMoveDirection((prev) => ({ ...prev, left: true }))
-      } else if (e.code === 'ArrowRight') {
-        setMoveDirection((prev) => ({ ...prev, right: true }))
-      } else if (e.code === 'Space') {
-        jump()
+      if (!gameStarted || gameOver) return
+      e.preventDefault() // Prevent scrolling
+      let direction: Direction = null
+      switch (e.key) {
+        case 'ArrowUp':
+          direction = 'up'
+          break
+        case 'ArrowDown':
+          direction = 'down'
+          break
+        case 'ArrowLeft':
+          direction = 'left'
+          break
+        case 'ArrowRight':
+          direction = 'right'
+          break
+        default:
+          return // Ignore other keys
       }
+      setCurrentDirection(direction)
     }
 
     const handleKeyUp = (e: KeyboardEvent) => {
-      if (e.code === 'ArrowLeft') {
-        setMoveDirection((prev) => ({ ...prev, left: false }))
-      } else if (e.code === 'ArrowRight') {
-        setMoveDirection((prev) => ({ ...prev, right: false }))
+      if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+        setCurrentDirection(null)
       }
     }
 
     window.addEventListener('keydown', handleKeyDown)
     window.addEventListener('keyup', handleKeyUp)
-
     return () => {
       window.removeEventListener('keydown', handleKeyDown)
       window.removeEventListener('keyup', handleKeyUp)
     }
-  }, [jump])
+  }, [gameStarted, gameOver])
 
   useEffect(() => {
-    const xVelocity =
-      (moveDirection.left ? -MOVE_SPEED : 0) +
-      (moveDirection.right ? MOVE_SPEED : 0)
-    setVelocity((prev) => ({ ...prev, x: xVelocity }))
-  }, [moveDirection])
+    if (gameStarted && !gameOver) {
+      moveIntervalRef.current = window.setInterval(gameLoop, MOVE_INTERVAL)
+    } else if (moveIntervalRef.current) {
+      clearInterval(moveIntervalRef.current)
+    }
+
+    return () => {
+      if (moveIntervalRef.current) {
+        clearInterval(moveIntervalRef.current)
+      }
+    }
+  }, [gameStarted, gameOver, gameLoop])
 
   const startGame = () => {
     setGameStarted(true)
-    setGameWon(false)
-    setPlayer({
-      x: 50,
-      y: CANVAS_HEIGHT - 80,
-      width: 40,
-      height: 60,
-    })
-    setVelocity({ x: 0, y: 0 })
-    setMoveDirection({ left: false, right: false })
-    setIsJumping(false)
+    setGameOver(false)
+    setScore(0)
+    setPacman({ x: 1, y: 1 })
+    setGhost({ x: 18, y: 18 })
+    setCurrentDirection(null)
+    initializeDots()
+    drawGame({ x: 1, y: 1 }, { x: 18, y: 18 })
   }
 
   return (
@@ -238,22 +327,27 @@ const MarioGame: React.FC = () => {
         width={CANVAS_WIDTH}
         height={CANVAS_HEIGHT}
         className="border border-gray-300"
-        tabIndex={0}
       />
-      {!gameStarted && <Button onClick={startGame}>Start Game</Button>}
-      {gameWon && (
+      {!gameStarted && !gameOver && (
+        <Button onClick={startGame}>Start Game</Button>
+      )}
+      {gameOver && (
         <div className="text-center">
-          <p className="text-xl font-bold mb-2">You Win!</p>
+          <p className="text-xl font-bold mb-2">
+            {dots.length === 0 ? 'You Win!' : 'Game Over!'}
+          </p>
+          <p className="mb-4">Your score: {score}</p>
           <Button onClick={startGame}>Play Again</Button>
         </div>
       )}
       <div className="text-sm text-muted-foreground">
-        <p>Use arrow keys to move left and right</p>
-        <p>Press space to jump</p>
-        <p>Reach the gold block to win!</p>
+        <p>Use arrow keys to move Pacman</p>
+        <p>Eat all dots to win!</p>
+        <p>Avoid the ghost!</p>
       </div>
+      <div>Score: {score}</div>
     </div>
   )
 }
 
-export default MarioGame
+export default PacmanGame
