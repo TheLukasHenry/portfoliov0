@@ -3,10 +3,14 @@
 import { useEffect, useRef, useState } from 'react'
 import * as THREE from 'three'
 import { useRouter } from 'next/navigation'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent } from '@/components/ui/card'
 
 export default function SpaceExplorer3D() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const [exploring, setExploring] = useState<string | null>(null)
+  const [speed, setSpeed] = useState(0)
+  const [heading, setHeading] = useState(0)
   const router = useRouter()
 
   useEffect(() => {
@@ -25,6 +29,7 @@ export default function SpaceExplorer3D() {
       antialias: true,
     })
     renderer.setSize(window.innerWidth, window.innerHeight)
+    renderer.setClearColor(0x000000)
 
     // Ship (camera) movement
     const shipPosition = new THREE.Vector3(0, 0, 0)
@@ -37,7 +42,7 @@ export default function SpaceExplorer3D() {
 
     // Load textures
     const textureLoader = new THREE.TextureLoader()
-    const textures = [
+    const planetTextures = [
       textureLoader.load('/placeholder.svg?height=512&width=512&text=About'),
       textureLoader.load('/placeholder.svg?height=512&width=512&text=Contact'),
       textureLoader.load('/placeholder.svg?height=512&width=512&text=Projects'),
@@ -48,24 +53,24 @@ export default function SpaceExplorer3D() {
       {
         name: 'About',
         position: new THREE.Vector3(50, 0, -100),
-        texture: textures[0],
+        texture: planetTextures[0],
         size: 15,
-        color: 0x8b4513,
-      }, // Brown
+        color: 0xff6347,
+      },
       {
         name: 'Contact',
         position: new THREE.Vector3(-50, 25, -150),
-        texture: textures[1],
+        texture: planetTextures[1],
         size: 10,
-        color: 0xffd700,
-      }, // Yellow
+        color: 0x4169e1,
+      },
       {
         name: 'Projects',
         position: new THREE.Vector3(0, -40, -200),
-        texture: textures[2],
+        texture: planetTextures[2],
         size: 20,
-        color: 0x808080,
-      }, // Grey
+        color: 0x32cd32,
+      },
     ]
 
     planets.forEach((planet) => {
@@ -104,8 +109,8 @@ export default function SpaceExplorer3D() {
     // Lighting
     const ambientLight = new THREE.AmbientLight(0x404040)
     scene.add(ambientLight)
-    const pointLight = new THREE.PointLight(0xffffff, 1, 100)
-    pointLight.position.set(0, 0, 0)
+    const pointLight = new THREE.PointLight(0xffffff, 1, 300)
+    pointLight.position.set(0, 50, -100)
     scene.add(pointLight)
 
     // Stars
@@ -141,6 +146,9 @@ export default function SpaceExplorer3D() {
       if (keys[' ']) {
         // Spacebar
         shipVelocity.add(shipDirection.clone().multiplyScalar(acceleration))
+      } else if (keys['Control'] || keys['Meta']) {
+        // Ctrl or Cmd
+        shipVelocity.sub(shipDirection.clone().multiplyScalar(acceleration))
       } else {
         shipVelocity.multiplyScalar(1 - deceleration)
       }
@@ -151,7 +159,24 @@ export default function SpaceExplorer3D() {
       }
 
       // Update position
-      shipPosition.add(shipVelocity)
+      const potentialPosition = shipPosition.clone().add(shipVelocity)
+
+      // Check for collisions with planets
+      let collision = false
+      planets.forEach((planet) => {
+        const distance = potentialPosition.distanceTo(planet.position)
+        if (distance < planet.size + 5) {
+          collision = true
+          setExploring(planet.name)
+        }
+      })
+
+      // Only update position if there's no collision
+      if (!collision) {
+        shipPosition.copy(potentialPosition)
+      } else {
+        shipVelocity.set(0, 0, 0)
+      }
 
       // Change direction
       if (keys['ArrowUp']) shipDirection.y += rotationSpeed
@@ -172,13 +197,9 @@ export default function SpaceExplorer3D() {
       camera.position.copy(shipPosition)
       camera.lookAt(shipPosition.clone().add(shipDirection))
 
-      // Collision detection
-      planets.forEach((planet) => {
-        const distance = shipPosition.distanceTo(planet.position)
-        if (distance < planet.size + 5) {
-          setExploring(planet.name)
-        }
-      })
+      // Update HUD
+      setSpeed(shipVelocity.length() * 100)
+      setHeading(Math.atan2(shipDirection.x, shipDirection.z) * (180 / Math.PI))
 
       renderer.render(scene, camera)
     }
@@ -207,33 +228,51 @@ export default function SpaceExplorer3D() {
     }
   }
 
+  const handleContinue = () => {
+    setExploring(null)
+  }
+
   return (
     <div className="relative w-full h-screen">
       <canvas ref={canvasRef} className="w-full h-full" />
       {exploring && (
-        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white p-4 rounded shadow">
-          <p className="mb-4">Do you want to explore {exploring}?</p>
-          <div className="flex justify-between">
-            <button
-              onClick={handleExplore}
-              className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
-            >
-              Yes
-            </button>
-            <button
-              onClick={() => setExploring(null)}
-              className="bg-gray-300 text-black px-4 py-2 rounded hover:bg-gray-400"
-            >
-              No
-            </button>
-          </div>
+        <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50">
+          <Card className="w-80">
+            <CardContent className="p-6">
+              <h2 className="text-2xl font-bold mb-4 text-center">
+                Do you want to explore {exploring}?
+              </h2>
+              <div className="flex justify-between gap-4">
+                <Button
+                  onClick={handleExplore}
+                  className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90"
+                >
+                  Yes
+                </Button>
+                <Button
+                  onClick={handleContinue}
+                  variant="outline"
+                  className="flex-1"
+                >
+                  No
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       )}
-      <div className="absolute bottom-4 left-4 text-white text-sm">
-        <p>Controls:</p>
-        <p>Spacebar: Accelerate</p>
-        <p>Up/Down Arrows: Pitch</p>
-        <p>Left/Right Arrows: Turn</p>
+      <div className="absolute inset-0 pointer-events-none">
+        <div className="absolute top-4 left-4 text-white text-sm bg-black bg-opacity-50 p-2 rounded">
+          <p>Speed: {speed.toFixed(2)}</p>
+          <p>Heading: {heading.toFixed(2)}°</p>
+        </div>
+        <div className="absolute bottom-4 left-4 text-white text-sm bg-black bg-opacity-50 p-2 rounded">
+          <p>Controls:</p>
+          <p>Spacebar: Accelerate</p>
+          <p>Ctrl/Cmd: Decelerate</p>
+          <p>Up/Down Arrows: Pitch</p>
+          <p>Left/Right Arrows: Turn</p>
+        </div>
       </div>
     </div>
   )
