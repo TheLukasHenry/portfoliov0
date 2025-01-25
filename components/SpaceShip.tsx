@@ -71,6 +71,20 @@ export default function SpaceExplorer3D() {
         size: 20,
         color: 0x32cd32,
       },
+      {
+        name: 'Mystery',
+        position: new THREE.Vector3(100, 30, -180),
+        texture: planetTextures[0], // Reusing texture for now
+        size: 12,
+        color: 0x9932cc, // Purple
+      },
+      {
+        name: 'Hidden',
+        position: new THREE.Vector3(-80, -20, -250),
+        texture: planetTextures[0], // Reusing texture for now
+        size: 18,
+        color: 0xffd700, // Gold
+      },
     ]
 
     planets.forEach((planet) => {
